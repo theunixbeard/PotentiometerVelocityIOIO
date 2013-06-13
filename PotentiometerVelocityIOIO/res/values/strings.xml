@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello, IOIO User!</string>
-    <string name="app_name">Hello IOIO</string>
+    <string name="app_name">Quantified Speed</string>
+    <string name="displacement_placeholder">Displacement: N/A volts</string>
+    <string name="velocity_placeholder">Velocity: N/A volts/sec</string>
+    <string name="rep_data_title">Rep Peak Velocity</string>
+    <string name="rep_data_placeholder">N/A volts/sec</string>
+    <string name="debug_data_title">Debug Data:</string>
+    <string name="upload_data_button_title">Upload Data</string>
+
 </resources>
