@@ -13,6 +13,7 @@ import java.util.List;
 import org.apache.commons.collections.buffer.CircularFifoBuffer;
 
 import quantifiedspeed.weightliftinganalzer.versioN3.R;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -43,8 +44,12 @@ public class MainActivity extends IOIOActivity {
 	// Rep Detection Data
 	public static final float REP_DETECTION_START_VELOCITY = 0.1f; // Will need tweaking
 	public static final float REP_DETECTION_END_VELOCITY = 0.02f; // Will need tweaking
+	public static final float REP_SPEED_CUTOFF = 1.5f; // Will need tweaking
 	protected boolean inRepetition = false;
-	protected float lastRepMaxVelocity = 0;
+	protected float lastRepMaxVelocityVolts = 0;
+	
+	// Voltage To Distance Data
+	public static final float METERS_PER_VOLT = 1; // Seems to be correct, should investigate further to get a more precise number
 	
 	/**
 	 * Called when the activity is first created. Here we normally initialize
@@ -124,24 +129,36 @@ public class MainActivity extends IOIOActivity {
 		return new Looper();
 	}
 	
+	protected Float convertVoltToMeter(Float voltage) {
+		return voltage * METERS_PER_VOLT;
+	}
+	
 	protected void updatePotentiometerField(final boolean updateRepTextField) {
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				Float goodDisplacement = displacements[wrap_index(displacementsIndex-2)];
-				Float goodVelocity = velocities[wrap_index(displacementsIndex-2)];
-				if(goodDisplacement != null) {
-					displacementTextView_.setText("Displacement: " + String.format("%.3f", goodDisplacement) + " volts");
+				Float goodDisplacementVolts = displacements[wrap_index(displacementsIndex-2)];
+				Float goodVelocityVolts = velocities[wrap_index(displacementsIndex-2)];
+				if(goodDisplacementVolts != null) {
+					Float goodDisplacementMeters = convertVoltToMeter(goodDisplacementVolts);
+					displacementTextView_.setText("Displacement: " + String.format("%.3f", goodDisplacementMeters) + " meters");
 				}else {
-					displacementTextView_.setText("Displacement: null volts");
+					displacementTextView_.setText("Displacement: null meters");
 				}
-				if(goodVelocity != null) {
-					velocityTextView_.setText("Velocity: " + String.format("%.3f", goodVelocity) + " volts/second");
+				if(goodVelocityVolts != null) {
+					Float goodVelocityMeters = convertVoltToMeter(goodVelocityVolts);
+					velocityTextView_.setText("Velocity: " + String.format("%.3f", goodVelocityMeters) + " m/sec");
 				}else {
-					velocityTextView_.setText("Velocity: null volts/second");
+					velocityTextView_.setText("Velocity: null m/sec");
 				}
 				if(updateRepTextField) {
-					repetitionTextView_.setText(String.format("%.3f", lastRepMaxVelocity) + " v/s");
+					Float lastRepMaxVelocityMeters = convertVoltToMeter(lastRepMaxVelocityVolts);
+					repetitionTextView_.setText(String.format("%.3f", lastRepMaxVelocityMeters) + " m/sec");
+					if(lastRepMaxVelocityVolts < REP_SPEED_CUTOFF) {
+						repetitionTextView_.setTextColor(Color.RED);
+					} else {
+						repetitionTextView_.setTextColor(Color.GREEN);
+					}
 					Toast.makeText(getApplicationContext(), "New Rep Detected", Toast.LENGTH_LONG).show();
 				}
 			}
@@ -181,13 +198,13 @@ public class MainActivity extends IOIOActivity {
 		// Handle start of repetition
 		if(!inRepetition && velocity > REP_DETECTION_START_VELOCITY) {
 			inRepetition = true;
-			lastRepMaxVelocity = velocity;
+			lastRepMaxVelocityVolts = velocity;
 		}
 		
 		if(inRepetition) {
 			// Handle updating data we keep track of
-			if(velocity > lastRepMaxVelocity) {
-				lastRepMaxVelocity = velocity;
+			if(velocity > lastRepMaxVelocityVolts) {
+				lastRepMaxVelocityVolts = velocity;
 			}
 			
 			// Handle ending rep and updating textfield

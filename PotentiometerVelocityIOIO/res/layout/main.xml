@@ -45,11 +45,19 @@
         android:id="@+id/repetition"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/textView1"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="86dp"
+        android:layout_centerVertical="true"
         android:gravity="center"
         android:text="@string/rep_data_placeholder"
-        android:textSize="90sp" />
+        android:textSize="200sp" />
+
+    <Switch
+        android:id="@+id/switch1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:text="@string/upload_data_button_title"
+        android:textSize="20sp" />
 
 </RelativeLayout>
