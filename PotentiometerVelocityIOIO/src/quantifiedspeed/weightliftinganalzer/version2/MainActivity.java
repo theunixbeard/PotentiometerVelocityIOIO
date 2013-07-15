@@ -41,6 +41,11 @@ public class MainActivity extends IOIOActivity {
 	protected int displacementsIndex = 0;
 	protected float[] velocities = new float[DISPLACEMENT_DATA_POINT_COUNT];
 	
+	// Acceleration Calculation Data
+	protected float[] accelerations = new float[DISPLACEMENT_DATA_POINT_COUNT];
+	
+	
+	
 	// Rep Detection Data
 	public static final float REP_DETECTION_START_VELOCITY = 0.1f; // Will need tweaking
 	public static final float REP_DETECTION_END_VELOCITY = 0.02f; // Will need tweaking
@@ -104,11 +109,12 @@ public class MainActivity extends IOIOActivity {
 				//potValue = potIn_.read(); // Value from 0 to 1 of permitted voltage range
 				potValue = potIn_.getVoltage(); // Actual voltage read
 				displacements[displacementsIndex++] = potValue; 
-				displacementsIndex %= DISPLACEMENT_DATA_POINT_COUNT;
-				int velocitiesCalulationIndex = wrap_index(displacementsIndex - 2); //Move two back so we have a forward data point
-				float velocity = calculateVelocity(displacements, velocitiesCalulationIndex);
-				velocities[velocitiesCalulationIndex] = velocity;
+				int velocitiesCalculationIndex = wrap_index(displacementsIndex - 2); //Move two back so we have a forward data point
+				float velocity = takeDerivative(displacements, velocitiesCalculationIndex);
+				velocities[velocitiesCalculationIndex++] = velocity;
 				// Deals with detecting reps and keeping track of required data, returns true if RepTextField must be updated
+				int accelerationsCalculationIndex = wrap_index(velocitiesCalculationIndex - 2);
+				float acceleration = takeDerivative(velocities, accelerationsCalculationIndex);
 				boolean repEnded = handleRepetition(velocity);
 				// Updates UI to display displacement, velocity and rep info
 				updatePotentiometerField(repEnded);
@@ -139,17 +145,17 @@ public class MainActivity extends IOIOActivity {
 			public void run() {
 				Float goodDisplacementVolts = displacements[wrap_index(displacementsIndex-2)];
 				Float goodVelocityVolts = velocities[wrap_index(displacementsIndex-2)];
-				if(goodDisplacementVolts != null) {
+				if(goodDisplacementVolts != 0) {
 					Float goodDisplacementMeters = convertVoltToMeter(goodDisplacementVolts);
 					displacementTextView_.setText("Displacement: " + String.format("%.3f", goodDisplacementMeters) + " meters");
 				}else {
-					displacementTextView_.setText("Displacement: null meters");
+					displacementTextView_.setText("Displacement: 0 meters");
 				}
-				if(goodVelocityVolts != null) {
+				if(goodVelocityVolts != 0) {
 					Float goodVelocityMeters = convertVoltToMeter(goodVelocityVolts);
 					velocityTextView_.setText("Velocity: " + String.format("%.3f", goodVelocityMeters) + " m/sec");
 				}else {
-					velocityTextView_.setText("Velocity: null m/sec");
+					velocityTextView_.setText("Velocity: 0 m/sec");
 				}
 				if(updateRepTextField) {
 					Float lastRepMaxVelocityMeters = convertVoltToMeter(lastRepMaxVelocityVolts);
@@ -165,17 +171,17 @@ public class MainActivity extends IOIOActivity {
 		});
 	}
 	
-	protected Float calculateVelocity(float[] displacements, int displacementsIndex) {
+	protected Float takeDerivative(float[] displacements, int displacementsIndex) {
 		// Two point formula used (f(x+h) - f(x-h))/(2*h)
 		// Should h just be READING_INTERVAL and use constants 1 instead of scaling later???
-		Float velocity = null;
+		Float derivative = 0;
 		final int h = 1; // h is actually READING_INTERVAL, not 1 so we scale it in the velocity calculation below
 		Float xPlusH = displacements[wrap_index(displacementsIndex + h)];
 		Float xMinusH = displacements[wrap_index(displacementsIndex - h)];
-		if(xPlusH != null && xMinusH != null) {
-			velocity = (xPlusH - xMinusH) / (2	*h*(READING_INTERVAL/1000.0f)); //adjust h by the scale
+		if(xPlusH != 0 && xMinusH != 0) {
+			derivative = (xPlusH - xMinusH) / (2	*h*(READING_INTERVAL/1000.0f)); //adjust h by the scale
 		}
-		return velocity;
+		return derivative;
 	}
 	
 	protected int wrap_index(int unwrapped_index) {
